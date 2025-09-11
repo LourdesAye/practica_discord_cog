@@ -1,0 +1,9 @@
+# import vs requirements 
+# import: no se garantiza que el paquete está instalado 
+# requirements: para instalar paquetes
+    # depliegue profesional y reproducibilidad: tener las mismas versiones de librerias replicando el entorno
+    # control de versión del paquete, auditoría y mantenimiento : para ver qué dependencias usar y en qué versión 
+    # para detectar vulnerabilidades o incompatibilidades
+discord.py==2.3.2
+# para manejar variables de entorno.
+python-dotenv>=1.0.0
