@@ -7,14 +7,15 @@ from discord.ext import commands   # Extensiones para comandos
 
 # Cargamos en esta aplicación las variables de entorno desde el .env (si existe)
 load_dotenv()                      # Lee un archivo .env y carga sus pares de clave-valor como variables de entorno en la aplicación Python.
-TOKEN = os.getenv("BOT_TOKEN")     # con esto se logra NO poner el token en el código ( esto es una práctica segura)
+TOKEN = os.getenv("BOT_TOKEN")     # con esto se logra NO poner el token en el código (esto es una práctica segura)
+GUILD_ID = os.getenv("GUILD_ID")   # con esto se logra NO poner el ID del GUILD (del servidor) en el código (práctica segura)
 
 if not TOKEN:
     # Si no hay token no funciona la aplicación por eso se va a recibir un mensaje de error
     raise RuntimeError("Falta BOT_TOKEN en .env — se debe copiar .env.example a .env y poner el token")
 
 # Intents: indica qué eventos queremos recibir.
-# message_content es necesario si querés leer el contenido de cada mensaje (para comandos con prefijo y detección de texto).
+# message_content es necesario para leer el contenido de cada mensaje (para comandos con prefijo y detección de texto).
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -38,7 +39,7 @@ intents.message_content = True
                         # se pueden almacenar en estructura de datos (listas, diccionarios, etc)
                         # es decir, usarlas como cualquier otro dato.
                         # Esto es porque Python es multipradigma
-                            #  soporta paradigma orientado a objetios, funcional y procedimental (imperativo) , 
+                            # soporta paradigma orientado a objetos, funcional y procedimental (imperativo) , 
                             # no es un leguaje lógico pero posee bibliotecas que intentan emularlo.
                             # Se puede tener código en Python que sea: 
                                 # Muy estructurado y orientado a objetos
@@ -48,8 +49,8 @@ intents.message_content = True
                     # lo que ocurre internamente en la librería discord.py
                         # 1- prefix = command_prefix(bot, message) no se ve en el código fuente pero si esta en la librería:  
                             # if callable(self.command_prefix):
-                            # prefix = await utils.maybe_coroutine(self.command_prefix, self, message). self.command_prefix 
-                            # es lo que se le pasa al bot (en este caso, la función obtener_prefijo).
+                            # prefix = await utils.maybe_coroutine(self.command_prefix, self, message). 
+                            # self.command_prefix es lo que se le pasa al bot (en este caso, la función obtener_prefijo).
                             # callable(...) verifica si eso es una función. utils.maybe_coroutine(...) llama a esa función 
                             # con los argumentos self (el bot) y message.
             # 3 - String
@@ -60,30 +61,143 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=commands.De
 async def on_ready():
     # on_ready se llama cuando el bot está conectado y listo.
     print(f"Bot conectado como {bot.user} (id: {bot.user.id})")
-    # esto no es una buena práctica aquí: sincronizar comandos slash/híbridos: 
-        # try:
-        #     synced = await bot.tree.sync()
-        #     print(f"Sincronizados {len(synced)} comandos de aplicación (global).")
-        # except Exception as e:
-        #     print("No se pudieron sincronizar los comandos de aplicación:", e)
-        # sincronizar globalmente puede tardar hasta 1 hora en propagarse en Discord.
 
-        # Cómo funciona la sincronización de slash/híbridos? 
-        # Cuando se define @commands.hybrid_command, ese comando tiene que registrarse en la API de Discord.
-        # Esa "sincronización" (el famoso await bot.tree.sync()) puede hacerse:
-            # Globalmente → tarda hasta 1 hora en aparecer en todos los servidores. 
-                # Si se hace seguido, puede ocurrir límites de rate-limit.
-                    # rate-limit se traduce como limitado por tasa o restricción de frecuencia
-                    # mecanismo de los sistemas informáticos para controlar cuántas veces se puede hacer una acción 
-                    # en un período de tiempo (con el objetivo de evitar spam y sobrecargas).
-                    # mensaje “You are being rate limited” (discord) aparece cuando intentas hacer una acción demasiadas veces 
-                    # en poco tiempo, como: enviar muchos mensajes seguidos, intentar verificar el número de teléfono repetidamente, 
-                    # hacer clic en botones de verificación sin esperar. 
-                    # Discord bloquea al usuraio temporalmente (desde unos segundos hasta varios minutos) para proteger el sistema. 
-            # Por servidor (guild-specific) → aparece al instante, ideal para pruebas, casi sin riesgo de rate-limit.
+# Cómo funciona la sincronización de slash/híbridos? 
+# Cuando se define @commands.hybrid_command, ese comando tiene que registrarse en la API de Discord.
+# Esa "sincronización" (el famoso await bot.tree.sync()) puede hacerse:
+    # Globalmente → tarda hasta 1 hora en aparecer en todos los servidores. 
+        # Si se hace seguido, puede ocurrir límites de rate-limit.
+            # rate-limit se traduce como limitado por tasa o restricción de frecuencia
+            # mecanismo de los sistemas informáticos para controlar cuántas veces se puede hacer una acción 
+            # en un período de tiempo (con el objetivo de evitar spam y sobrecargas).
+            # mensaje “You are being rate limited” (discord) aparece cuando intentas hacer una acción demasiadas veces 
+            # en poco tiempo, como: enviar muchos mensajes seguidos, intentar verificar el número de teléfono repetidamente, 
+            # hacer clic en botones de verificación sin esperar. 
+            # Discord bloquea al usuraio temporalmente (desde unos segundos hasta varios minutos) para proteger el sistema. 
+    # Por servidor (guild-specific) → aparece al instante, ideal para pruebas, casi sin riesgo de rate-limit.
+
+# NO conviene sincronizar siempre en on_ready porque cada vez que reiniciás el bot, va a intentar registrar todo de nuevo. 
+# Lo correcto: sincronizar sólo cuando cambiaste comandos o manualmente con un comando oculto para vos. 
+# En desarrollo, debería sincronizar para un solo GUILD (1 servidor)
+# En producción, debería ser global (una vez que está todo probado) 
+# también esta la opción de sincronizar algunos servidores (más de 1)
+
+# @commands.is_owner() : para que el comando pueda ser utilizado únicamente por el dueño del bot
+    # No se necesita poner el ID owner manualmente.
+    # Funciona automáticamente con el dueño de la aplicación del bot (la cuenta que creó la app en el Developer Portal)
+    # no hace falta ponger algo en .env (solo valida 1 dueño oficial)
+
+# @commands.command(name="..."): define un comando llamado name que puede ser ejecutado por todos los usuarios en Discord.
+
+# SPLIT, MAP e INT
+# string.split("separador"): print("hola,cómo,estás,?".split(",")): ['hola', 'cómo', 'estás', '?']
+# "string".split("separador") : print("manzana,banana,pera".split(",")) -> ['manzana', 'banana', 'pera']
+# map(funcion_aplicar_por_elemento,iterable_con_muchos_elementos) : print (map(int, ["1", "2", "3"] ) ) -> [1, 2, 3] 
+# int(numero_flotante_o_string) : convierte a entero cada elemento del iterable (puede ser lista, diccionario,etc)
+
+# async def 
+    # declara una coroutine (función asíncrona). No se ejecuta inmediatamente; devuelve un objeto coroutine.
+# await 
+    # se usa dentro de una coroutine para "esperar" otra coroutine o future sin bloquear todo el hilo. 
+
+# permite que otras tareas corran mientras se espera.
+# async/await es como pedirle a alguien que haga una tarea y volver cuando te avise que terminó (sin quedarte parado mirando).
+
+# ctx.bot: Es una referencia al bot que está ejecutando el comando.
+# .tree: Es el árbol de comandos slash del bot. Aquí se registran todos los comandos que pueden ser sincronizados con Discord.
+# .sync(): Es el método que sincroniza los comandos registrados en el árbol con los servidores de Discord.
+# guild=guild: Le indica que la sincronización debe hacerse solo en ese servidor específico (no globalmente).
+
+# SINCRONIZAR TODOS LOS SERVIDORES QUE TENGO CON COMANDOS HÍBRIDOS
+# 🔹 Comando para sincronizar GLOBALMENTE
+@commands.command(name="sync_global") # Define un comando llamado sync_global que puede ser ejecutado por los usuarios en Discord.
+@commands.is_owner()  # Solo el dueño del bot puede ejecutarlo. Si otro usuario lo intenta, se le denegará el acceso.
+async def sync_global(self, ctx): # función asincrónica que se ejecuta cuando se llama el comando
+    # ctx es el contexto del comando: contiene información sobre quién lo ejecutó, en qué canal, etc.
+    try:
+        # Sincroniza los comandos globales del bot con la API de Discord.
+        # Actualiza los comandos registrados para que estén disponibles globalmente.
+        synced = await ctx.bot.tree.sync()
+        await ctx.send(f"✅ Sincronizados {len(synced)} comandos globales.\n" # Envía un mensaje al canal informando cuántos comandos fueron sincronizados.
+                        f"(Puede tardar hasta 1 hora en propagarse).")
+    except Exception as e: # Si ocurre algún error, se captura en la variable e
+        await ctx.send(f"⚠️ Error al sincronizar global: {e}") # Envía un mensaje al canal con el detalle del error ocurrido.
+
+# SINCRONIZAR SOLO UN SERVIDOR CON COMANDOS HÍBRIDOS
+# 🔹 Comando para sincronizar SOLO en un GUILD (más rápido)
+@commands.command(name="sync_guild") # Declara un comando de texto llamado sync_guild. 
+# Se ejecuta escribiendo (prefijo)name_comando
+@commands.is_owner() # Restringe el uso del comando solo al dueño del bot. Si otro usuario lo intenta, se le denegará el acceso.
+async def sync_guild(self, ctx): # función asincrónica que se ejecuta cuando se llama el comando. 
+    # ctx es el contexto del comando, contiene información sobre el mensaje, el canal, el autor, etc.
+    """Sincroniza slash/híbridos en un servidor específico (instantáneo). 
+    Uso: !sync_guild
+    """ # Es un docstring que explica qué hace el comando y cómo se usa.
+    try:
+        guild_id = GUILD_ID or ctx.guild.id  # Usa el guild del .env o del server donde estás
+        # podría haber una lista de guild? qué cambios hay que incorporar respecto de lo actual?
+        guild = discord.Object(id=guild_id) # crea un objeto de tipo Guild usando el id_guild. 
+        # Este objeto se usa para indicar a Discord en qué servidor se deben sincronizar los comandos.
+        synced = await ctx.bot.tree.sync(guild=guild) # # Sincroniza los comandos slash del bot solo en ese servidor.  
+        # Contiene una lista de los comandos sincronizados. 
+        await ctx.send(f"✅ Sincronizados {len(synced)} comandos en el servidor {guild_id}.") # Envía un mensaje al canal 
+        # confirmando cuántos comandos fueron sincronizados en ese servidor.
+    except Exception as e:
+        await ctx.send(f"⚠️ Error al sincronizar guild: {e}")
+
+# VARIOS SERVIDORES QUE NECESITAN ACTUALIZAR COMANDOS HÍBRIDOS
+# Evita la espera de hasta 1 hora de la sincronización global.
+# Se controla exactamente en qué servidores se actualizan los comandos.
+# Se mantiene una lista dinámica en .env sin tocar el código.
+@commands.command(name="sync_selected_guilds") # Declara un comando de texto llamado sync_selected_guilds 
+@commands.is_owner() # Restringe el uso del comando solo al dueño del bot. Si otro usuario lo intenta, se le denegará el acceso.
+async def sync_selected_guilds(self, ctx): # función asincrónica que se ejecuta cuando se llama el comando.
+    """Sincroniza comandos slash en múltiples servidores definidos en .env"""
+    try:
+       
+        guild_ids = os.getenv("GUILD_IDS").split(",")        # Obtiene los IDs como lista de enteros
+        guild_ids = [int(gid.strip()) for gid in guild_ids]  # Son IDs de servidores específicos seleccionados para actualizar comandos
+        total_synced = 0 # variable para contar el total de comandos sincronizados en todos los servidores
+        for gid in guild_ids:
+            # Crea un objeto Guild usando el ID actual para indicarle a Discord en qué servidor se deben sincronizar los comandos.
+            guild = discord.Object(id=gid) 
+            # Sincroniza los comandos slash del bot solo en ese servidor. 
+            # synced es una lista con los comandos que fueron sincronizados en ese servidor.
+            synced = await ctx.bot.tree.sync(guild=guild)
+            total_synced += len(synced) # Suma la cantidad de comandos sincronizados en este servidor al total acumulado.
+            await ctx.send(f"✅ {len(synced)} comandos sincronizados en el servidor `{gid}`.")
+
+        # Una vez terminado el bucle, envía un mensaje resumen cuántos servidores fueron sincronizados 
+        # y cuántos comandos se sincronizaron en total.
+        await ctx.send(f"🎯 Sincronización completa en {len(guild_ids)} servidores. Total de comandos sincronizados: {total_synced}")
+
+    except Exception as e:
+        await ctx.send(f"⚠️ Error al sincronizar múltiples servidores: {e}")
 
 
-# NO conviene sincronizar siempre en on_ready porque cada vez que reiniciás el bot, va a intentar registrar todo de nuevo. Lo correcto: sincronizar sólo cuando cambiaste comandos o manualmente con un comando oculto para vos. # Lo correcto sería sincronizar para un solo GUILD (1 servidor). 
+OWNERS = list(map(int, os.getenv("OWNERS").split(",")))
+
+def is_in_owners():
+    async def predicate(ctx):
+        return ctx.author.id in OWNERS
+    return commands.check(predicate)
+
+class Admin(commands.Cog):
+    @commands.command(name="sync_global")
+    @is_in_owners()
+    async def sync_global(self, ctx):
+        await ctx.send("Solo ciertos dueños pueden usar esto.")
+
+def has_admin_role():
+    async def predicate(ctx):
+        return any(role.name == "Administrador" for role in ctx.author.roles)
+    return commands.check(predicate)
+
+class Admin(commands.Cog):
+    @commands.command(name="sync_guild")
+    @has_admin_role()
+    async def sync_guild(self, ctx):
+        await ctx.send("Este comando solo lo pueden usar los que tengan rol Admin.")
 
 
 # Cargar extensiones (cogs). Esto es asíncrono y por eso usamos await.
@@ -108,6 +222,8 @@ async def on_ready():
 # bot.load_extension()	Carga un módulo externo (cog) al bot.
 # "cogs.ejemplo"	Ruta estilo módulo: archivo ejemplo.py dentro de carpeta cogs.
 
+
+
 async def load_extensions():
     # "cogs.ejemplo" corresponde al archivo cogs/ejemplo.py (ruta estilo módulo Python)
     # Esto le dice al bot: “Cargá esta extensión, pero no bloquees todo el programa mientras lo hacés.”
@@ -124,3 +240,4 @@ async def main():
 if __name__ == "__main__":
     # asyncio.run crea un loop, ejecuta main() y cierra el loop al terminar.
     asyncio.run(main())
+ 
