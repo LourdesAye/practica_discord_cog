@@ -36,7 +36,7 @@ asyncio.run(main())
 # Se declara una corutina llamada 'plan' que recibe un objeto Future como argumento
 async def plan(my_future): 
     print('Planning my future...')
-    await asyncio.sleep(1)  # se suspende la ejecución de esta corutina por 1 segundo (se simula una tarea asincrónica)
+    await asyncio.sleep(1)  # se suspende la ejecución de esa corutina por 1 segundo (se simula una tarea asincrónica): no bloquea el hilo completo sino que permite que otras operaciones puedan ejecutarse en forma concurrente
     my_future.set_result('Bright') # se establece el resultado del Future como 'Bright', lo que desbloquea a quien esté esperando ese resultado
 
 # Se define una función que crea y retorna un objeto Future

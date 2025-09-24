@@ -95,31 +95,43 @@ async def on_ready():
 # map(funcion_aplicar_por_elemento,iterable_con_muchos_elementos) : print (map(int, ["1", "2", "3"] ) ) -> [1, 2, 3] 
 # int(numero_flotante_o_string) : convierte a entero cada elemento del iterable (puede ser lista, diccionario,etc)
 
-# async def 
-    # declara una coroutine (función asíncrona). No se ejecuta inmediatamente; devuelve un objeto coroutine.
-# await 
-    # se usa dentro de una coroutine para "esperar" otra coroutine o future sin bloquear todo el hilo. 
+# async/await es como pedirle a alguien que haga una tarea y que te avise al finalizar 
+# (para hacer algo en el mientras se espera el resultado y sin quedarte parado mirando).
+# async def : declara una coroutine (función asíncrona).
+# await : se usa dentro de una coroutine para "esperar" otra coroutina sin bloquear todo el hilo. 
 
-# permite que otras tareas corran mientras se espera.
-# async/await es como pedirle a alguien que haga una tarea y volver cuando te avise que terminó (sin quedarte parado mirando).
-
-# ctx.bot: Es una referencia al bot que está ejecutando el comando.
-# .tree: Es el árbol de comandos slash del bot. Aquí se registran todos los comandos que pueden ser sincronizados con Discord.
+# await ctx.bot.tree.sync()
+# ctx: contexto de una interacción o comando (contine información como quién ejecutó el comando, en qué canal, qué bot lo recibió, etcétera)
+# bot: atributo de ctx. Representa la instancia del bot que está ejecutando el comando.
+# bot.tree : se refiere a una estructura jerárquica (árbol) que se enecraga de gestionar y organizar los comandos de interacción en Discord. 
+# bot.tree va a permitir registrar, sincronizar y organizar los comandos. 
+    # los comandos se registran en tree mediante decoradores o métodos como @commands.command(name=...). 
+    # tree gestiona los comandos y con async() se sincroniza los comandos con Discord 
+    # (se manda los comandos a discord para que estén disponibles en los servidores)
 # .sync(): Es el método que sincroniza los comandos registrados en el árbol con los servidores de Discord.
-# guild=guild: Le indica que la sincronización debe hacerse solo en ese servidor específico (no globalmente).
+    # guild=guild: Le indica que la sincronización debe hacerse solo en ese servidor específico (no globalmente).
+# await : sync() es una corutina (una función async), que espera operaciones asincrónicas (como comunicarse con la API de Discord) y devuelve un objeto tipo Coroutine
+
+# synced = await ctx.bot.tree.sync()?
+# Ejecuta el método sync() para sincronizar los comandos del bot. Espera a que termine esa operación (porque puede tardar).
+# Guarda el resultado (por ejemplo, una lista de comandos sincronizados) en la variable synced.
+
 
 # SINCRONIZAR TODOS LOS SERVIDORES QUE TENGO CON COMANDOS HÍBRIDOS
 # 🔹 Comando para sincronizar GLOBALMENTE
 @commands.command(name="sync_global") # Define un comando llamado sync_global que puede ser ejecutado por los usuarios en Discord.
 @commands.is_owner()  # Solo el dueño del bot puede ejecutarlo. Si otro usuario lo intenta, se le denegará el acceso.
-async def sync_global(self, ctx): # función asincrónica que se ejecuta cuando se llama el comando
-    # ctx es el contexto del comando: contiene información sobre quién lo ejecutó, en qué canal, etc.
-    try:
+async def sync_global(self, ctx): # async def: función asincrónica (corutina) que se ejecuta cuando se llama al comando y ctx = contexto de la invocación: autor, canal, guild, message, etc
+    try: # para el manejo de errores
         # Sincroniza los comandos globales del bot con la API de Discord.
-        # Actualiza los comandos registrados para que estén disponibles globalmente.
         synced = await ctx.bot.tree.sync()
+        # ctx.send() para enviar un mensaje al canal donde se ejecutó el comando.
+        # es una corutina (una función async). Al interactuar con la API de Discord (que es asincrónica), necesita que el programa espere a que se complete la operación. 
+        # El mensaje se envía al canal de texto donde el usuario ejecutó el comando.
+        # Discord lo muestra como si el bot hubiera escrito ese mensaje. ctx representa el contexto de ese comando.
+        # ctx.send() envía el mensaje al canal correspondiente.
         await ctx.send(f"✅ Sincronizados {len(synced)} comandos globales.\n" # Envía un mensaje al canal informando cuántos comandos fueron sincronizados.
-                        f"(Puede tardar hasta 1 hora en propagarse).")
+                        f"(Puede tardar hasta 1 hora en propagarse).") # porque es para todos los servidores en el que esté el bot
     except Exception as e: # Si ocurre algún error, se captura en la variable e
         await ctx.send(f"⚠️ Error al sincronizar global: {e}") # Envía un mensaje al canal con el detalle del error ocurrido.
 
